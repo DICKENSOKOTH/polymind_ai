@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PolyMind – Multi-Agent Thinkers</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="logo">
+                <span class="logo-icon">🤖</span>
+                <h1>PolyMind</h1>
+            </div>
+            <p class="subtitle">Three AI agents collaborate to solve your problems</p>
+        </header>
+
+        <div class="input-section">
+            <div class="input-wrapper">
+                <textarea 
+                    id="topic" 
+                    placeholder="Ask a question or describe your problem..."
+                    rows="3"
+                ></textarea>
+                <div class="input-controls">
+                    <div class="style-selector">
+                        <label for="style">Response Style:</label>
+                        <select id="style">
+                            <option value="">Balanced</option>
+                            <option value="concise">Concise</option>
+                            <option value="technical">Technical</option>
+                            <option value="empathetic">Empathetic</option>
+                            <option value="creative">Creative</option>
+                        </select>
+                    </div>
+                    <button id="thinkBtn" class="think-btn" onclick="think()">
+                        <span class="btn-text">Think Together</span>
+                        <span class="btn-icon">✨</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="loading" class="loading" style="display:none;">
+            <div class="loading-spinner"></div>
+            <p>AI agents are thinking...</p>
+        </div>
+
+        <div class="agents-section" id="agentsSection" style="display:none;">
+            <h2 class="section-title">Agent Responses</h2>
+            <div class="grid" id="agents"></div>
+        </div>
+
+        <div id="finalSection" style="display:none;">
+            <h2 class="section-title">Final Verdict</h2>
+            <div id="final" class="final-box"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="script.js"></script>
+</body>
+
+</html>
