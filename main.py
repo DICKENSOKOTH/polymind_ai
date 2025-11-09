@@ -65,7 +65,7 @@ async def get_gemini_flash_response(topic: str, style: str) -> str:
     try:
         # Run in thread pool to avoid blocking
         def _generate():
-            model_flash = genai.GenerativeModel("gemini-2.0-flash-exp")
+            model_flash = genai.GenerativeModel("gemini-2.5-flash")
             return model_flash.generate_content(
                 f"{topic} (Style: {style}. Be concise.)",
                 generation_config=genai.GenerationConfig(
@@ -85,7 +85,7 @@ async def get_gemini_pro_response(topic: str, style: str) -> str:
     try:
         # Run in thread pool to avoid blocking
         def _generate():
-            model_pro = genai.GenerativeModel("gemini-2.0-flash-exp")
+            model_pro = genai.GenerativeModel("gemini-2.5-pro")
             return model_pro.generate_content(
                 f"{topic} (Style: {style}. Be thoughtful and balanced.)",
                 generation_config=genai.GenerationConfig(
@@ -144,3 +144,4 @@ async def chat_endpoint(data: Query, request: Request):
         },
         "final": final,
     }
+
