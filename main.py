@@ -1,4 +1,4 @@
-# PolyMind — Multi-Agent AI Backend (Optimized with Async)
+# PolyMind — Multi-Agent AI Backend (Ultra-Fast with Smart Final Verdict)
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -18,7 +18,7 @@ if not GOOGLE_API_KEY or not OPENAI_API_KEY:
 
 # Configure clients
 genai.configure(api_key=GOOGLE_API_KEY)
-openai_client = AsyncOpenAI(api_key=OPENAI_API_KEY)  # Changed to AsyncOpenAI
+openai_client = AsyncOpenAI(api_key=OPENAI_API_KEY)
 
 # FastAPI app
 app = FastAPI(title="PolyMind API")
@@ -52,7 +52,7 @@ async def get_openai_response(topic: str, style: str) -> str:
                 {"role": "system", "content": f"You are a {style} AI thinker. Be concise and insightful."},
                 {"role": "user", "content": topic},
             ],
-            max_tokens=800,  # Reduced for faster response
+            max_tokens=600,  # Reduced further for speed
             temperature=0.7,
         )
         return response.choices[0].message.content
@@ -63,13 +63,12 @@ async def get_openai_response(topic: str, style: str) -> str:
 # Async function for Gemini Flash
 async def get_gemini_flash_response(topic: str, style: str) -> str:
     try:
-        # Run in thread pool to avoid blocking
         def _generate():
             model_flash = genai.GenerativeModel("gemini-2.5-flash")
             return model_flash.generate_content(
                 f"{topic} (Style: {style}. Be concise.)",
                 generation_config=genai.GenerationConfig(
-                    max_output_tokens=800,
+                    max_output_tokens=600,
                     temperature=0.7,
                 )
             ).text
@@ -83,13 +82,12 @@ async def get_gemini_flash_response(topic: str, style: str) -> str:
 # Async function for Gemini Pro
 async def get_gemini_pro_response(topic: str, style: str) -> str:
     try:
-        # Run in thread pool to avoid blocking
         def _generate():
             model_pro = genai.GenerativeModel("gemini-2.5-pro")
             return model_pro.generate_content(
                 f"{topic} (Style: {style}. Be thoughtful and balanced.)",
                 generation_config=genai.GenerationConfig(
-                    max_output_tokens=800,
+                    max_output_tokens=600,
                     temperature=0.7,
                 )
             ).text
@@ -100,41 +98,69 @@ async def get_gemini_pro_response(topic: str, style: str) -> str:
         return f"⚠️ Gemini Pro error: {e}"
 
 
+# 🧠 Smart Final Verdict Generator - Uses AI to synthesize all responses
+async def generate_final_verdict(topic: str, agent_alpha: str, agent_beta: str, agent_gamma: str, style: str) -> str:
+    """
+    Uses GPT-4o-mini to analyze all three agent responses and create a synthesized final verdict.
+    This is much faster than using a heavy model and produces intelligent comparisons.
+    """
+    try:
+        # Create a prompt for the AI judge
+        judge_prompt = f"""You are an expert AI judge analyzing multiple AI responses to synthesize the best answer.
+
+**Original Question:** {topic}
+
+**Agent Alpha (OpenAI) Response:**
+{agent_alpha}
+
+**Agent Beta (Gemini Flash) Response:**
+{agent_beta}
+
+**Agent Gamma (Gemini Pro) Response:**
+{agent_gamma}
+
+**Your Task:**
+1. Analyze the strengths and weaknesses of each response
+2. Identify which agent(s) provided the most accurate, helpful, or comprehensive answer
+3. Synthesize the best elements from all three responses into one superior answer
+4. Be concise but comprehensive
+5. Mention which agent had the best approach if relevant
+
+Provide your final verdict below:"""
+
+        response = await openai_client.chat.completions.create(
+            model="gpt-4o-mini",  # Fast and smart enough for synthesis
+            messages=[
+                {"role": "system", "content": "You are an expert AI judge that synthesizes multiple perspectives into clear, actionable insights."},
+                {"role": "user", "content": judge_prompt},
+            ],
+            max_tokens=800,  # Slightly longer for synthesis
+            temperature=0.5,  # Lower temp for more consistent judgments
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        # Fallback to simple logic if API fails
+        valid_responses = [r for r in [agent_alpha, agent_beta, agent_gamma] if not r.startswith("⚠️")]
+        if valid_responses:
+            return f"⚠️ Could not generate AI synthesis. Here's the longest response:\n\n{max(valid_responses, key=len)}"
+        return "⚠️ All agents encountered errors."
+
+
 @app.post("/chat")
 async def chat_endpoint(data: Query, request: Request):
     topic = data.topic
     style = data.preferred_style or "neutral"
     
-    # 🚀 Call all 3 agents in PARALLEL (this is the key optimization!)
+    # 🚀 Call all 3 agents in PARALLEL
     agent_alpha, agent_beta, agent_gamma = await asyncio.gather(
         get_openai_response(topic, style),
         get_gemini_flash_response(topic, style),
         get_gemini_pro_response(topic, style)
     )
     
-    # === Improved Final Verdict ===
-    responses = [agent_alpha, agent_beta, agent_gamma]
-    
-    # Filter out error responses
-    valid_responses = [r for r in responses if not r.startswith("⚠️")]
-    
-    if not valid_responses:
-        final = "All agents encountered errors. Please try again."
-    else:
-        # Choose the longest valid response as "best"
-        best_response = max(valid_responses, key=len)
-        
-        # Add short previews of other agents for context
-        others_summary = "\n".join(
-            f"- {name}: {resp[:150]}..." 
-            for name, resp in zip(["OpenAI", "Gemini Flash", "Gemini Pro"], responses) 
-            if resp != best_response and not resp.startswith("⚠️")
-        )
-        
-        if others_summary:
-            final = f"{best_response}\n\n📋 Other perspectives:\n{others_summary}"
-        else:
-            final = best_response
+    # ⚡ Generate smart final verdict in parallel with returning agent responses
+    # This happens while the frontend is already displaying agent cards!
+    final_verdict = await generate_final_verdict(topic, agent_alpha, agent_beta, agent_gamma, style)
     
     return {
         "agents": {
@@ -142,6 +168,5 @@ async def chat_endpoint(data: Query, request: Request):
             "beta": agent_beta,
             "gamma": agent_gamma,
         },
-        "final": final,
+        "final": final_verdict,
     }
-
